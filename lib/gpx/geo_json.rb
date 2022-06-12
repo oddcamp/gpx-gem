@@ -35,7 +35,7 @@ module GPX
         geojson = geojson_data_from(opts)
         gpx_file = GPX::GPXFile.new
         add_tracks_to(gpx_file, geojson)
-        add_waypoints_to(gpx_file, geojson)
+        add_waypoints_to(gpx_file, geojson) unless opts[:disable_waypoints]
         gpx_file
       end
 
