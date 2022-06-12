@@ -34,8 +34,8 @@ module GPX
       def convert_to_gpx(opts = {})
         geojson = geojson_data_from(opts)
         gpx_file = GPX::GPXFile.new
-        add_tracks_to(gpx_file, geojson)
-        add_waypoints_to(gpx_file, geojson)
+        add_tracks_to(gpx_file, geojson, opts)
+        add_waypoints_to(gpx_file, geojson, opts)
         gpx_file
       end
 
@@ -61,32 +61,32 @@ module GPX
         JSON.parse(data)
       end
 
-      def add_tracks_to(gpx_file, geojson)
-        tracks = [line_strings_to_track(geojson)] +
-                 multi_line_strings_to_tracks(geojson)
+      def add_tracks_to(gpx_file, geojson, opts)
+        tracks = [line_strings_to_track(geojson, opts)] +
+                 multi_line_strings_to_tracks(geojson, opts)
         tracks.compact!
         gpx_file.tracks += tracks
         gpx_file.tracks.each { |t| gpx_file.update_meta_data(t) }
       end
 
-      def add_waypoints_to(gpx_file, geojson)
+      def add_waypoints_to(gpx_file, geojson, opts)
         gpx_file.waypoints +=
-          points_to_waypoints(geojson, gpx_file) +
-          multi_points_to_waypoints(geojson, gpx_file)
+          points_to_waypoints(geojson, gpx_file, opts) +
+          multi_points_to_waypoints(geojson, gpx_file, opts)
       end
 
       # Converts GeoJSON 'LineString' features.
       # Current strategy is to convert each LineString into a
       # Track Segment, returning a Track for all LineStrings.
       #
-      def line_strings_to_track(geojson)
+      def line_strings_to_track(geojson, opts)
         line_strings = line_strings_in(geojson)
         return nil unless line_strings.any?
 
         track = GPX::Track.new
         line_strings.each do |ls|
           coords = ls['geometry']['coordinates']
-          track.append_segment(coords_to_segment(coords))
+          track.append_segment(coords_to_segment(coords, opts))
         end
         track
       end
@@ -96,12 +96,12 @@ module GPX
       # into a Track, with each set of LineString coordinates
       # within a MultiLineString a Track Segment.
       #
-      def multi_line_strings_to_tracks(geojson)
+      def multi_line_strings_to_tracks(geojson, opts)
         tracks = []
         multi_line_strings_in(geojson).each do |mls|
           track = GPX::Track.new
           mls['geometry']['coordinates'].each do |coords|
-            seg = coords_to_segment(coords)
+            seg = coords_to_segment(coords, opts)
             seg.track = track
             track.append_segment(seg)
           end
@@ -114,10 +114,10 @@ module GPX
       # Current strategy is to convert each Point
       # feature into a GPX waypoint.
       #
-      def points_to_waypoints(geojson, gpx_file)
+      def points_to_waypoints(geojson, gpx_file, opts)
         points_in(geojson).reduce([]) do |acc, pt|
           coords = pt['geometry']['coordinates']
-          acc << point_to_waypoint(coords, gpx_file)
+          acc << point_to_waypoint(coords, gpx_file, opts)
         end
       end
 
@@ -132,10 +132,10 @@ module GPX
       #    series of turn points leading to a destination."
       # See http://www.topografix.com/gpx/1/1/#type_rteType
       #
-      def multi_points_to_waypoints(geojson, gpx_file)
+      def multi_points_to_waypoints(geojson, gpx_file, opts)
         multi_points_in(geojson).reduce([]) do |acc, mpt|
           mpt['geometry']['coordinates'].each do |coords|
-            acc << point_to_waypoint(coords, gpx_file)
+            acc << point_to_waypoint(coords, gpx_file, opts)
           end
         end
       end
@@ -143,31 +143,31 @@ module GPX
       # Given an array of [lng, lat, ele] coordinates,
       # return a GPX track segment.
       #
-      def coords_to_segment(coords)
+      def coords_to_segment(coords, opts)
         seg = GPX::Segment.new
         coords.each do |pt|
-          seg.append_point(point_to_track_point(pt, seg))
+          seg.append_point(point_to_track_point(pt, seg, opts))
         end
         seg
       end
 
       # Given a GeoJSON coordinate point, return
       # a GPX::Waypoint
-      def point_to_waypoint(point, gpx_file)
+      def point_to_waypoint(point, gpx_file, opts)
         GPX::Waypoint.new(gpx_file: gpx_file,
                           lon: point[0],
                           lat: point[1],
-                          elevation: point[2])
+                          elevation: point[2] || opts[:default_elevation])
       end
 
       # Given a GeoJSON coorindate point, and
       # GPX segment, return a GPX::TrackPoint.
       #
-      def point_to_track_point(point, seg)
+      def point_to_track_point(point, seg, opts)
         GPX::TrackPoint.new(segment: seg,
                             lon: point[0],
                             lat: point[1],
-                            elevation: point[2])
+                            elevation: point[2] || opts[:default_elevation])
       end
 
       # Returns all features in the passed geojson
