@@ -34,7 +34,7 @@ module GPX
       def convert_to_gpx(opts = {})
         geojson = geojson_data_from(opts)
         gpx_file = GPX::GPXFile.new
-        add_tracks_to(gpx_file, geojson, opts[:disable_bounds].blank?)
+        add_tracks_to(gpx_file, geojson, !(opts[:disable_bounds] || false))
         add_waypoints_to(gpx_file, geojson) unless opts[:disable_waypoints]
         gpx_file
       end
