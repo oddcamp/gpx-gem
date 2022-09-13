@@ -3,7 +3,7 @@
 module GPX
   class GPXFile < Base
     attr_accessor :tracks,
-                  :routes, :waypoints, :bounds, :lowest_point, :highest_point, :duration, :ns, :time, :name, :version, :creator, :description, :moving_duration
+                  :routes, :waypoints, :bounds, :disable_bounds, :lowest_point, :highest_point, :duration, :ns, :time, :name, :version, :creator, :description, :moving_duration
 
     DEFAULT_CREATOR = "GPX RubyGem #{GPX::VERSION} -- http://dougfales.github.io/gpx/"
 
@@ -31,6 +31,7 @@ module GPX
       @namespace_defs = []
       @tracks = []
       @time = nil
+      @disable_bounds = opts[:disable_bounds]
 
       if opts[:gpx_file] || opts[:gpx_data]
         if opts[:gpx_file]
@@ -280,7 +281,7 @@ module GPX
               minlon: bounds.min_lon,
               maxlat: bounds.max_lat,
               maxlon: bounds.max_lon
-            )
+            ) unless @disable_bounds
           else
             xml.metadata do
               xml.name @name
@@ -290,7 +291,7 @@ module GPX
                 minlon: bounds.min_lon,
                 maxlat: bounds.max_lat,
                 maxlon: bounds.max_lon
-              )
+              ) unless @disable_bounds
             end
           end
 
