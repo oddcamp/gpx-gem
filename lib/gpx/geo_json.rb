@@ -32,8 +32,8 @@ module GPX
       # Returns a GPX::GPX_File object populated with the converted data.
       #
       def convert_to_gpx(opts = {})
-        geojson = geojson_data_from(opts.slice(:disable_bounds))
-        gpx_file = GPX::GPXFile.new
+        geojson = geojson_data_from(opts)
+        gpx_file = GPX::GPXFile.new(opts.slice(:disable_bounds))
         add_tracks_to(gpx_file, geojson, !(opts[:disable_bounds] || false))
         add_waypoints_to(gpx_file, geojson) unless opts[:disable_waypoints]
         gpx_file
