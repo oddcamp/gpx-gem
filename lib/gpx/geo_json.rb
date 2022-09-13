@@ -34,7 +34,7 @@ module GPX
       def convert_to_gpx(opts = {})
         geojson = geojson_data_from(opts)
         gpx_file = GPX::GPXFile.new
-        add_tracks_to(gpx_file, geojson)
+        add_tracks_to(gpx_file, geojson, opts[:disable_bounds].blank?)
         add_waypoints_to(gpx_file, geojson) unless opts[:disable_waypoints]
         gpx_file
       end
@@ -61,12 +61,12 @@ module GPX
         JSON.parse(data)
       end
 
-      def add_tracks_to(gpx_file, geojson)
+      def add_tracks_to(gpx_file, geojson, enable_bounds)
         tracks = [line_strings_to_track(geojson)] +
                  multi_line_strings_to_tracks(geojson)
         tracks.compact!
         gpx_file.tracks += tracks
-        gpx_file.tracks.each { |t| gpx_file.update_meta_data(t) }
+        gpx_file.tracks.each { |t| gpx_file.update_meta_data(t, enable_bounds) }
       end
 
       def add_waypoints_to(gpx_file, geojson)
